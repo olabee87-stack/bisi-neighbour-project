@@ -1,10 +1,12 @@
 const express = require("express");
 const app = express();
-const PORT = 8020;
+const PORT = 8030;
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
+const bodyParser = require("body-parser");
 
 //Database connection specifying exact DB to make a connection to
-mongoose.connect("mongodb://localhost:27017/test");
+mongoose.connect("mongodb://localhost:27017/test", { useNewUrlParser: true });
 
 //Establishing a connection to mongoose
 const db = mongoose.connection;
@@ -14,6 +16,8 @@ db.on("error", (err) => {
 db.on("open", () => {
   console.log(`Successfully connected to the DB`);
 });
+
+//Database schema
 
 //Localhost port
 app.listen(PORT, () => {
