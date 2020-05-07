@@ -4,6 +4,7 @@ const PORT = 8040;
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const session = require("express-session");
+const flash = require("flash");
 const path = require("path");
 const findOrCreate = require("mongoose-findorcreate");
 const bodyParser = require("body-parser");
@@ -38,6 +39,7 @@ const grocerySchema = new Schema({
   password: String,
   address: String,
   phone: String,
+  is_Helper: Boolean,
 });
 
 grocerySchema.plugin(findOrCreate);
@@ -90,7 +92,7 @@ passport.deserializeUser((id, done) => {
   });
 });
 
-//Redirects a user that is already logged in
+// Redirect a logged in user
 loginUser = (req, res, next) => {
   if (req.isAuthenticated()) {
     res.redirect("/");
@@ -100,7 +102,7 @@ loginUser = (req, res, next) => {
   }
 };
 
-//Redirects a user that has not logged in
+// Redirect a user that has not logged in
 nonLoginUser = (req, res, next) => {
   if (req.isUnauthenticated()) {
     res.redirect("/login");
@@ -108,6 +110,8 @@ nonLoginUser = (req, res, next) => {
     next();
   }
 };
+
+// ROUTES
 
 // Home route
 app.get("/", function (req, res) {
@@ -133,6 +137,11 @@ app.get("/register", function (req, res) {
   res.render("registration");
 });
 
+app.get("/logout", function (req, res) {
+  req.logout();
+  res.redirect("/login");
+});
+
 app.post("/register/send", (req, res) => {
   User.findOrCreate({ username: req.body.username }, (err, user, created) => {
     if (err) {
@@ -141,9 +150,11 @@ app.post("/register/send", (req, res) => {
     if (created) {
       user.firstname = req.body.firstname;
       user.lastname = req.body.lastname;
+      user.email = req.body.email;
       user.password = req.body.password;
       user.address = req.body.address;
       user.phone = req.body.phone;
+      user.is_Helper = req.body.is_Helper;
 
       user
         .save()
