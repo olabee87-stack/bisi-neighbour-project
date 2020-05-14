@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order</title>
+  </head>
+  <body>
+    <h3>Order page</h3>
+    <form method="POST" action="/order/send">
+      <input type="text" name="order" id="order" />
+      <button id="btn">Order</button>
+      <h4>Click here to continue shopping><a href="/products">Products</a></h4>
+
+      <a href="/logout">Logout</a>
+    </form>
+    <script>
+      document
+        .getElementById("btn")
+        .addEventListener("click", async (event) => {
+          // on-click event
+          console.log("Clicked");
+          event.preventDefault(); // prevent reloading page
+          const date = new Date().toJSON().slice(0, 10).replace(/-/g, "/");
+          const order = document.getElementById("order").value;
+          const post = {
+            order,
+            date,
+          };
+
+          console.log(post);
+
+          const options = {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(post),
+          };
+
+          const db_response = await fetch("/order/send", options);
+          const db_json = await db_response.json();
+        });
+    </script>
+  </body>
+</html>

@@ -1,15 +1,15 @@
 const express = require("express");
 const app = express();
-const PORT = 8040;
+const PORT = 8020;
 const passport = require("passport");
+const cors = require("cors");
+const bcrypt = require("bcrypt");
 const LocalStrategy = require("passport-local").Strategy;
 const session = require("express-session");
-const flash = require("flash");
 const path = require("path");
 const findOrCreate = require("mongoose-findorcreate");
 const bodyParser = require("body-parser");
 const router = require("express").Router();
-require("dotenv/config");
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
@@ -18,7 +18,10 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 //Database connection
-mongoose.connect(process.env.DB_CONNECTION, { useNewUrlParser: true });
+mongoose.connect(
+  "mongodb+srv://olabisi:coding@node-projects-qyzht.mongodb.net/grocerydb?retryWrites=true&w=majority",
+  { useNewUrlParser: true, useUnifiedTopology: true }
+);
 const db = mongoose.connection;
 
 //Error check
@@ -31,7 +34,8 @@ db.on("open", () => {
   console.log(`Successfully connected to the DB`);
 });
 
-//Grocery schema
+//User schema here
+//Grocery schema (User model)
 const grocerySchema = new Schema({
   firstname: String,
   lastname: String,
@@ -39,14 +43,24 @@ const grocerySchema = new Schema({
   password: String,
   address: String,
   phone: String,
-  is_Helper: Boolean,
+  is_Helper: String,
 });
-
 grocerySchema.plugin(findOrCreate);
 const User = mongoose.model("User", grocerySchema);
 
+//Order Schema here
+const orderSchema = new Schema({
+  id: String,
+  date: String,
+  response: Object,
+});
+const Order = mongoose.model("Order", orderSchema);
+
 // Body parser middlewaare
 app.use(bodyParser.urlencoded({ extended: "false" }));
+
+//Cross origin to connect front and back
+app.use(cors());
 
 // Set public folder
 app.use(express.static(path.join(__dirname, "public")));
@@ -93,7 +107,7 @@ passport.deserializeUser((id, done) => {
 });
 
 // Redirect a logged in user
-loginUser = (req, res, next) => {
+const loginUser = (req, res, next) => {
   if (req.isAuthenticated()) {
     res.redirect("/");
   } else {
@@ -114,12 +128,12 @@ nonLoginUser = (req, res, next) => {
 // ROUTES
 
 // Home route
-app.get("/", function (req, res) {
+app.get("/", (req, res) => {
   res.render("home");
 });
 
 // Log-in route
-app.get("/login", function (req, res) {
+app.get("/login", loginUser, (req, res) => {
   res.render("login");
 });
 
@@ -133,16 +147,18 @@ app.post(
 );
 
 // Register route
-app.get("/register", function (req, res) {
+app.get("/register", (req, res) => {
   res.render("registration");
 });
 
-app.get("/logout", function (req, res) {
+app.get("/logout", (req, res) => {
   req.logout();
   res.redirect("/login");
 });
 
-app.post("/register/send", (req, res) => {
+app.post("/register/send", async (req, res) => {
+  //const hashedPassword = await bcrypt.hash(req.body.password, 10); //hashed the password
+
   User.findOrCreate({ username: req.body.username }, (err, user, created) => {
     if (err) {
       console.log(`An error has occured ${err}`);
@@ -150,7 +166,6 @@ app.post("/register/send", (req, res) => {
     if (created) {
       user.firstname = req.body.firstname;
       user.lastname = req.body.lastname;
-      user.email = req.body.email;
       user.password = req.body.password;
       user.address = req.body.address;
       user.phone = req.body.phone;
@@ -174,6 +189,30 @@ app.post("/register/send", (req, res) => {
       );
     }
   });
+});
+
+// Order Route(Jonne)
+app.get("/order", (req, res) => {
+  res.render("order");
+});
+//post from front end, saving data to database
+app.post("/order/send", async (req, res) => {
+  try {
+    console.log("POST - DONE");
+    console.log(req.body);
+    const response = await req.body;
+    const date = await response.body;
+    const newOrder = new Order();
+    newOrder.response = response;
+    newOrder.date = date;
+    newOrder.save();
+    res.json({
+      order: response,
+      date: date,
+    });
+  } catch {
+    res.status(400).jsonp({ error: "Bad request" });
+  }
 });
 
 //Localhost port
